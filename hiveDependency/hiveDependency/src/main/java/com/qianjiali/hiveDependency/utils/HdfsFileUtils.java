@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,12 +37,16 @@ import org.apache.taglibs.standard.lang.jstl.test.beans.PublicInterface2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mysql.cj.fabric.xmlrpc.base.Array;
 import com.qianjiali.hiveDependency.entity.HiveConfig;
 import com.qianjiali.hiveDependency.entity.ParseNode;
 import com.qianjiali.hiveDependency.entity.ScriptContent;
+import com.qianjiali.hiveDependency.entity.ScriptInfo;
 import com.qianjiali.hiveDependency.entity.ScriptItem;
 import com.qianjiali.hiveDependency.service.HiveParseTask;
 import com.qianjiali2.hiveDependency.dataMap.utils.HdfsFileUtils2;
+
+import jline.internal.InputStreamReader;
 
 public class HdfsFileUtils {
 
@@ -83,96 +88,13 @@ public class HdfsFileUtils {
 			RemoteIterator<LocatedFileStatus> subFiles = fileSystem.listFiles(path, true);
 			while (subFiles.hasNext()) {
 				Path childPath = subFiles.next().getPath();
-				if (fileSystem.isFile(childPath)) {
+				if (fileSystem.isFile(childPath)&&(childPath.getName().endsWith(".sql")||childPath.getName().endsWith(".hsql"))) {
 					paths.add(childPath);
 				}
 			}
 			logger.info("The number of scripts under " + path.toString() + " is " + paths.size());
 			System.out.println("The number of scripts under " + path.toString() + " is " + paths.size());
 			return paths;
-		}
-	}
-
-	@SuppressWarnings("all")
-	public static void downloadScriptForHdfs(String urlPath, String dest) throws Exception {
-		InputStream is = null;
-		FileOutputStream fileout = null;
-		try {
-			HttpClient client = new DefaultHttpClient();
-			HttpGet httpget = new HttpGet(urlPath);
-			HttpResponse response = client.execute(httpget);
-
-			HttpEntity entity = response.getEntity();
-			is = entity.getContent();
-
-			File file = new File(dest);
-			file.getParentFile().mkdirs();
-			fileout = new FileOutputStream(file);
-			/**
-			 * 根据实际运行效果 设置缓冲区大小
-			 */
-			byte[] buffer = new byte[10 * 1024];
-			int ch = 0;
-			while ((ch = is.read(buffer)) != -1) {
-				fileout.write(buffer, 0, ch);
-			}
-			fileout.flush();
-		} catch (Exception e) {
-			logger.error("Downloading script from hdfs failed" + e);
-			throw e;
-		} finally {
-			try {
-				if (is != null) {
-					is.close();
-				}
-				if (fileout != null) {
-					fileout.close();
-				}
-			} catch (IOException e) {
-				logger.error("close fileoutputstream stream is  failed" + e);
-				throw e;
-			}
-		}
-	}
-
-	public static String UploadFile(String urlPath, String dest) {
-		try {
-			InputStream in = new BufferedInputStream(new FileInputStream(urlPath));
-			Configuration conf = new Configuration();
-			FileSystem fs = FileSystem.get(URI.create(dest), conf);
-			OutputStream out = fs.create(new Path(dest), new Progressable() {
-				public void progress() {
-					System.out.print(".");
-				}
-			});
-			IOUtils.copyBytes(in, out, 4096, true);
-		} catch (Exception e) {
-			logger.error("Upload data map file to hdfs failed" + e);
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/**
-	 * read the hdfs file content notice that the dst is the full path name
-	 */
-	public static byte[] readHDFSFile(String dst) throws Exception {
-		Configuration conf = new Configuration();
-		FileSystem fs = FileSystem.get(conf);
-		Path path = new Path(dst);
-		if (fs.exists(path)) {
-			FSDataInputStream is = fs.open(path);
-			// get the file info to create the buffer
-			FileStatus stat = fs.getFileStatus(path);
-			// create the buffer
-			byte[] buffer = new byte[Integer.parseInt(String.valueOf(stat.getLen()))];
-			is.readFully(0, buffer);
-
-			is.close();
-			fs.close();
-			return buffer;
-		} else {
-			throw new Exception("the file is not found .");
 		}
 	}
 
@@ -233,12 +155,13 @@ public class HdfsFileUtils {
 	 */
 	public static void parseHiveAndUpdate2HiveByScriptAddress(String ScriptAddress) {
 		Path scriptPath = new Path(ScriptAddress);
-		List<Path> list = new ArrayList<Path>();
 		try {
-			list = HdfsFileUtils.listFile(scriptPath).stream().filter(path->filterParseScriptName(path.getName())).collect(Collectors.toList());
-			int count = list.size();
+			List<Path> allScriptFile = HdfsFileUtils.listFile(scriptPath);
+			setScriptContextInfo(allScriptFile);
+			List<Path> filterScriptFile = allScriptFile.stream().filter(path->filterParseScriptName(path.getName())).collect(Collectors.toList());
+			int count = filterScriptFile.size();
 			CountDownLatch cdl = new CountDownLatch(count);
-			for (Path path : list) {
+			for (Path path : filterScriptFile) {
 				taskPool.execute(new HiveParseTask(fileSystem, path,cdl));
 			}
 			cdl.await();
@@ -246,14 +169,29 @@ public class HdfsFileUtils {
 			System.out.println("parseHiveAndUpdate2HiveByScriptAddress function error:"+e.toString());
 			e.printStackTrace();
 		} finally{
-			try {
-				taskPool.shutdown();
-				fileSystem.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			taskPool.shutdown();
 		}
 	
+	}
+	
+	public static List<String> getFileCotentByPath(Path path){
+		FSDataInputStream fin = null;
+		BufferedReader reader = null;
+		List<String> parseScripts = new ArrayList<String>();
+		try {
+			fin = fileSystem.open(path);
+			reader = new BufferedReader(new InputStreamReader(fin, "UTF-8"));
+			parseScripts = HiveScriptFilterUtils.filterScriptLine(reader);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				HdfsFileUtils.closeHdfs(fin, null, reader);
+			} catch (Exception e) {
+				System.out.println("close the hdfs stream is error:" + e.toString());
+			}
+		}
+		return parseScripts;
 	}
 	
 	public static void updateScriptContext(){
@@ -271,6 +209,7 @@ public class HdfsFileUtils {
 			System.out.println("update the script content is error"+ e.toString());
 		} finally {
 			try {
+				fileSystem.close();
 				HdfsFileUtils.closeHdfs(null, fout, null);
 			} catch (Exception e) {
 				System.out.println("close the hdfs stream is error:"+e.toString());
@@ -292,5 +231,36 @@ public class HdfsFileUtils {
 		} else {
 			return false;
 		}
+	}
+	
+
+	private static void setScriptContextInfo(List<Path> allPath) {
+		FSDataInputStream fin = null;
+		BufferedReader reader = null;
+		for(Path path:allPath){
+			try {
+				ScriptInfo scriptInfo = new ScriptInfo();
+				String scriptname = path.getName();
+				fin = fileSystem.open(path);
+				reader = new BufferedReader(new InputStreamReader(fin, "UTF-8"));
+				FileStatus fileStatus = HdfsFileUtils.fileSystem.getFileStatus(path);
+				scriptInfo.setSize(Double.valueOf(fileStatus.getLen()/1000.0)+"KB");
+				scriptInfo.setLastmotifytime(DateUtil.LongToDateString(fileStatus.getModificationTime()));
+				scriptInfo.setUsername(fileStatus.getOwner());
+				scriptInfo.setUsergroup(fileStatus.getGroup());
+				scriptInfo.setUserauthority(String.valueOf(fileStatus.getPermission().toShort()));
+				scriptInfo.setContent(HiveScriptFilterUtils.firstFilterScript(reader).replaceAll("\n"," "));
+				ScriptContent.scriptMap.put(scriptname, scriptInfo);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				try {
+					HdfsFileUtils.closeHdfs(fin, null, reader);
+				} catch (Exception e) {
+					System.out.println("close the hdfs stream is error:" + e.toString());
+				}
+			}
+		}
+		System.out.println("ScriptContent number of ===>>>>"+ScriptContent.scriptMap.size());
 	}
 }

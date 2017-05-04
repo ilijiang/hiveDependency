@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.qianjiali.hiveDependency.entity.HiveConfig;
 import com.qianjiali.hiveDependency.utils.HdfsFileUtils;
 import com.qianjiali.hiveDependency.utils.HivePartitionUtils;
 import com.qianjiali.hiveDependency.utils.PropertiesUtil;
@@ -13,18 +14,25 @@ public class Client {
 
 	private static final Logger logger = LoggerFactory.getLogger(Client.class);
 
+	
 	static {
 		PropertiesUtil.initProperties();
 	}
 
 	public static void main(String[] args) {
-		prodEnv(args);
-		//testEnv();
+		HiveConfig conf = HiveConfig.getInstance();
+		if(conf.getRunningEnv().equals("test")){
+			testEnv();
+		}else if(conf.getRunningEnv().equals("prod")){
+			prodEnv(args);
+		}else{
+			System.out.println("no running env......");
+		}
 	}
 
 	public static void testEnv() {
 		try {
-			PropertiesUtil.setHiveParsePartition("20170421");
+			PropertiesUtil.setHiveParsePartition("20170422");
 			HdfsFileUtils.parseHiveAndUpdate2HiveByScriptAddress("/user/qianjiali/edw_houses/ADM/DDL/test");
 			
 			//TODO 
@@ -53,6 +61,10 @@ public class Client {
 			logger.info("The incoming address is " + args[0]);
 			System.out.println("The incoming address is " + args[0]);
 			HdfsFileUtils.parseHiveAndUpdate2HiveByScriptAddress(args[0]);
+			
+			//TODO 
+			HdfsFileUtils.updateScriptContext();
+			
 			HivePartitionUtils.createNewPartition();
 		} catch (Exception e) {
 			e.printStackTrace();

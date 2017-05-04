@@ -14,11 +14,6 @@ public class HiveConfig {
 	private String hdfsConfig;
 
 	/**
-	 * hdfs脚本存放的路径
-	 */
-	private String hdfsDir;
-
-	/**
 	 * 写入映射信息的路径
 	 */
 	private String hdfsDest;
@@ -41,6 +36,8 @@ public class HiveConfig {
 	
 	
 	private String scriptContentHdfsWriteUrl;
+	
+	private String runningEnv;
 
 	public String getHdfsConfig() {
 		return hdfsConfig;
@@ -48,14 +45,6 @@ public class HiveConfig {
 
 	public void setHdfsConfig(String hdfsConfig) {
 		this.hdfsConfig = hdfsConfig;
-	}
-
-	public String getHdfsDir() {
-		return hdfsDir;
-	}
-
-	public void setHdfsDir(String hdfsDir) {
-		this.hdfsDir = hdfsDir;
 	}
 
 	public String getHdfsDest() {
@@ -178,5 +167,13 @@ public class HiveConfig {
 
 	public void setDeleteScriptDetailPartitionSql(String deleteScriptDetailPartitionSql) {
 		this.deleteScriptDetailPartitionSql = deleteScriptDetailPartitionSql;
+	}
+
+	public String getRunningEnv() {
+		return runningEnv;
+	}
+
+	public void setRunningEnv(String runningEnv) {
+		this.runningEnv = runningEnv;
 	}
 }

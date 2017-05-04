@@ -12,6 +12,9 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.Path;
+
 import com.qianjiali.hiveDependency.entity.HiveConfig;
 import com.qianjiali.hiveDependency.entity.ScriptContent;
 
@@ -42,9 +45,8 @@ public class HiveScriptFilterUtils {
 		}
 	}
 
-	public static List<String> filterScriptLine(BufferedReader reader,String scriptname) throws Exception {
+	public static List<String> filterScriptLine(BufferedReader reader) throws Exception {
 		String analysisScript = firstFilterScript(reader);
-		ScriptContent.scriptMap.get(scriptname).setContent(analysisScript.replaceAll("\n", "\t"));
 		analysisScript = analysisScript.substring(analysisScript.toLowerCase().indexOf("insert"));
 		if (analysisScript.contains("$")) {
 			analysisScript = sql$ReplaceTo0(analysisScript);
@@ -58,7 +60,7 @@ public class HiveScriptFilterUtils {
 	/**
 	 * 过滤掉脚本的注释和一些不需要解析的脚本段
 	 */
-	private static String firstFilterScript(BufferedReader reader) throws Exception{
+	public static String firstFilterScript(BufferedReader reader) throws Exception{
 		StringBuilder script = new StringBuilder();
 		Pattern pComments = Pattern.compile("(?ms)/\\*.*?\\*/|^\\s*//.*?$");
 		String pPartition = "(alter)([\\s\\S]*?)(drop|add)([\\s\\S]*?)";
@@ -81,7 +83,7 @@ public class HiveScriptFilterUtils {
 		String analysisScript = pComments.matcher(script).replaceAll("").trim();
 		return analysisScript;
 	}
-
+	
 	public static String sql$ReplaceTo0(String sql) {
 		String rel = "(\\$)(\\{).*?(\\})";
 		Pattern p = Pattern.compile(rel, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);

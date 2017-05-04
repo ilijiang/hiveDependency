@@ -35,7 +35,6 @@ public class PropertiesUtil {
 		}
 		conf.setHdfsConfig(pros.getProperty("hdfs_config_url"));
 		conf.setHdfsDest(pros.getProperty("hdfs_script_parse_relation_map_url"));
-		conf.setHdfsDir(pros.getProperty("hdfs_script_save_dir_url"));
 		conf.setPatternInsert(pros.getProperty("pattern_insert"));
 		conf.setPatternPartition(pros.getProperty("pattern_partition"));
 		conf.setPatternComments(pros.getProperty("pattern_comments"));
@@ -48,6 +47,7 @@ public class PropertiesUtil {
 		conf.setScriptContentHdfsWriteUrl(pros.getProperty("hdfs_script_detail_url"));
 		conf.setCreateScriptDetailPartitionSql(pros.getProperty("create_script_detail_partition_sql"));
 		conf.setDeleteScriptDetailPartitionSql(pros.getProperty("delete_script_detail_partition_sql"));
+		conf.setRunningEnv(pros.getProperty("running_env"));
 		System.out.println("配置资源加载完成....................");
 		return conf;
 	}

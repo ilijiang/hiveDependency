@@ -34,7 +34,6 @@ public class PropertiesUtil2 {
         HiveConfig conf = HiveConfig.getInstance();
         conf.setHdfsConfig(pros.getProperty("hdfs_config_url"));
         conf.setHdfsDest(pros.getProperty("hdfs_script_parse_relation_map_url"));
-        conf.setHdfsDir(pros.getProperty("hdfs_script_save_dir_url"));
       //  conf.setFilterPrefix(pros.getProperty("hive_parse_filter_suffix"));
       //  conf.setFilterSuffix(pros.getProperty("hive_parse_filter_prefix"));
         System.out.println("配置资源加载完成....................");
