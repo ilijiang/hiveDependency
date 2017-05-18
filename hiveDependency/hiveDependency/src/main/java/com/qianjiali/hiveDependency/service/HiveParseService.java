@@ -9,32 +9,33 @@ import com.qianjiali.hiveDependency.utils.PropertiesUtil;
 
 public class HiveParseService {
 
-	public void startParseScript(String[] args){
-		
-		HiveConfig conf = PropertiesUtil.initProperties();
-		
+	public boolean startParseScript(String[] args) throws Exception{
 		System.out.println("开始执行解析...............");
-		
-		if(conf==null){
-			System.out.println("conf is null...............");
+		try {
+			HiveConfig conf = PropertiesUtil.initProperties();
+			if(conf==null){
+				System.out.println("conf is null...............");
+				return false;
+			}
+			if(conf.getRunningEnv()==null){
+				System.out.println("conf running env is null...............");
+				return false;
+			}
+			if(conf.getRunningEnv().equals("test")){
+				testEnv();
+			}else if(conf.getRunningEnv().equals("prod")){
+				prodEnv(args);
+			}else{
+				System.out.println("no running env......");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
 		}
-		
-		if(conf.getRunningEnv()==null){
-			System.out.println("conf running env is null...............");
-		}
-		
-		//testEnv();
-		
-		if(conf.getRunningEnv().equals("test")){
-			testEnv();
-		}else if(conf.getRunningEnv().equals("prod")){
-			prodEnv(args);
-		}else{
-			System.out.println("no running env......");
-		}
+		return true;
 	}
 
-	public  void testEnv() {
+	public void testEnv() throws Exception{
 		try {
 			PropertiesUtil.setHiveParsePartition("20170425");
 			HdfsFileUtils.parseHiveAndUpdate2HiveByScriptAddress("/user/qianjiali/edw_houses/ADM/DDL/test");
@@ -45,6 +46,7 @@ public class HiveParseService {
 			HivePartitionUtils.createNewPartition();
 		} catch (Exception e) {
 			e.printStackTrace();
+			throw e;
 		} finally {
 			try {
 				if (HdfsFileUtils.fileSystem != null) {
@@ -57,7 +59,7 @@ public class HiveParseService {
 		}
 	}
 
-	public void prodEnv(String[] args) {
+	public void prodEnv(String[] args) throws Exception{
 		try {
 			if (args.length == 2) {// 自定义分区
 				PropertiesUtil.setHiveParsePartition(args[1]);
@@ -71,6 +73,7 @@ public class HiveParseService {
 			HivePartitionUtils.createNewPartition();
 		} catch (Exception e) {
 			e.printStackTrace();
+			throw e;
 		} finally {
 			try {
 				if (HdfsFileUtils.fileSystem != null) {
