@@ -1,26 +1,30 @@
-package com.qianjiali.test;
+package com.qianjiali.hiveDependency.service;
 
 import java.io.IOException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.qianjiali.hiveDependency.entity.HiveConfig;
 import com.qianjiali.hiveDependency.utils.HdfsFileUtils;
 import com.qianjiali.hiveDependency.utils.HivePartitionUtils;
 import com.qianjiali.hiveDependency.utils.PropertiesUtil;
 
-public class Client {
+public class HiveParseService {
 
-	private static final Logger logger = LoggerFactory.getLogger(Client.class);
-
-	
-	static {
-		PropertiesUtil.initProperties();
-	}
-
-	public static void main(String[] args) {
-		HiveConfig conf = HiveConfig.getInstance();
+	public void startParseScript(String[] args){
+		
+		HiveConfig conf = PropertiesUtil.initProperties();
+		
+		System.out.println("开始执行解析...............");
+		
+		if(conf==null){
+			System.out.println("conf is null...............");
+		}
+		
+		if(conf.getRunningEnv()==null){
+			System.out.println("conf running env is null...............");
+		}
+		
+		//testEnv();
+		
 		if(conf.getRunningEnv().equals("test")){
 			testEnv();
 		}else if(conf.getRunningEnv().equals("prod")){
@@ -30,9 +34,9 @@ public class Client {
 		}
 	}
 
-	public static void testEnv() {
+	public  void testEnv() {
 		try {
-			PropertiesUtil.setHiveParsePartition("20170422");
+			PropertiesUtil.setHiveParsePartition("20170425");
 			HdfsFileUtils.parseHiveAndUpdate2HiveByScriptAddress("/user/qianjiali/edw_houses/ADM/DDL/test");
 			
 			//TODO 
@@ -53,12 +57,11 @@ public class Client {
 		}
 	}
 
-	public static void prodEnv(String[] args) {
+	public void prodEnv(String[] args) {
 		try {
 			if (args.length == 2) {// 自定义分区
 				PropertiesUtil.setHiveParsePartition(args[1]);
 			}
-			logger.info("The incoming address is " + args[0]);
 			System.out.println("The incoming address is " + args[0]);
 			HdfsFileUtils.parseHiveAndUpdate2HiveByScriptAddress(args[0]);
 			

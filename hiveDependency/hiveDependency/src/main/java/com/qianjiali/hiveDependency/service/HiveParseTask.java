@@ -3,8 +3,6 @@ package com.qianjiali.hiveDependency.service;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +18,6 @@ public class HiveParseTask implements Runnable {
 	private static final Logger logger = LoggerFactory.getLogger(HiveParseTask.class);
 
 	private static HiveConfig hiveParseConfig = HiveConfig.getInstance();
-
-	private FileSystem fileSystem;
 
 	private Path path;
 
@@ -57,32 +53,16 @@ public class HiveParseTask implements Runnable {
 	}
 
 	public void writetohdfs(String scriptname, String parseScript, String relationName) throws Exception {
-		FSDataOutputStream fout = null;
-		try {
-			String relationWriteUrl = hiveParseConfig.getHdfsDest() + "/" + relationName;
-			System.out.println("The script analysis result is written to the address:" + relationWriteUrl);
-			logger.info("The script analysis result is written to the address:" + relationWriteUrl);
-			Path dest = new Path(relationWriteUrl);
-			fout = fileSystem.create(dest, true);
-			ScriptItem item = new ScriptItem(parseScript);
-			ParseNode node = item.getParseNode();
-			String noderelation = TxtFileUtils.getHiveNodeRelation(node, scriptname);
-			fout.write(noderelation.getBytes(), 0, noderelation.getBytes().length);
-			fout.flush();
-		} catch (Exception e) {
-			System.out.println("The currently parsed script " + scriptname + " is error" + e.toString());
-		} finally {
-			try {
-				HdfsFileUtils.closeHdfs(null, fout, null);
-			} catch (Exception e) {
-				System.out.println("close the hdfs stream is error:" + e.toString());
-			}
-		}
+		ScriptItem item = new ScriptItem(parseScript);
+		ParseNode node = item.getParseNode();
+		String noderelation = TxtFileUtils.getHiveNodeRelation(node, scriptname);
+		String relationWriteUrl = hiveParseConfig.getHdfsDest() + "/" + relationName;
+		HdfsFileUtils.writeFile2Hdfs(relationWriteUrl, noderelation);
 	}
+	
 
-	public HiveParseTask(FileSystem fileSystem, Path path, CountDownLatch cdl) {
+	public HiveParseTask(Path path, CountDownLatch cdl) {
 		super();
-		this.fileSystem = fileSystem;
 		this.path = path;
 		this.cdl = cdl;
 	}

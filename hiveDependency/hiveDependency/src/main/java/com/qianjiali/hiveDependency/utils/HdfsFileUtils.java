@@ -1,16 +1,8 @@
 package com.qianjiali.hiveDependency.utils;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -18,7 +10,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -26,25 +17,15 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.util.Progressable;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.taglibs.standard.lang.jstl.test.beans.PublicInterface2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mysql.cj.fabric.xmlrpc.base.Array;
 import com.qianjiali.hiveDependency.entity.HiveConfig;
 import com.qianjiali.hiveDependency.entity.ParseNode;
 import com.qianjiali.hiveDependency.entity.ScriptContent;
 import com.qianjiali.hiveDependency.entity.ScriptInfo;
 import com.qianjiali.hiveDependency.entity.ScriptItem;
 import com.qianjiali.hiveDependency.service.HiveParseTask;
-import com.qianjiali2.hiveDependency.dataMap.utils.HdfsFileUtils2;
 
 import jline.internal.InputStreamReader;
 
@@ -162,7 +143,7 @@ public class HdfsFileUtils {
 			int count = filterScriptFile.size();
 			CountDownLatch cdl = new CountDownLatch(count);
 			for (Path path : filterScriptFile) {
-				taskPool.execute(new HiveParseTask(fileSystem, path,cdl));
+				taskPool.execute(new HiveParseTask(path,cdl));
 			}
 			cdl.await();
 		} catch (Exception e) {
@@ -194,43 +175,75 @@ public class HdfsFileUtils {
 		return parseScripts;
 	}
 	
-	public static void updateScriptContext(){
-		System.out.println("start update the script content");
+	public static void writeFile2Hdfs(String writeUrl,String writeContent){
+		System.out.println("start write file to hdfs,url is:"+writeUrl);
 		FSDataOutputStream fout = null;
 		try {
-			String contentWriteUrl = hiveParseConfig.getScriptContentHdfsWriteUrl();
-			System.out.println("update the script content of url:"+contentWriteUrl);
-			Path dest = new Path(contentWriteUrl);
+			System.out.println("update the script content of url:"+writeUrl);
+			Path dest = new Path(writeUrl);
 			fout = fileSystem.create(dest, true);
-			String scriptcontent = ScriptContent.getScriptConent();
-			fout.write(scriptcontent.getBytes(), 0, scriptcontent.getBytes().length);
+			fout.write(writeContent.getBytes(), 0, writeContent.getBytes().length);
 			fout.flush();
 		} catch (Exception e) {
 			System.out.println("update the script content is error"+ e.toString());
 		} finally {
 			try {
-				fileSystem.close();
 				HdfsFileUtils.closeHdfs(null, fout, null);
 			} catch (Exception e) {
 				System.out.println("close the hdfs stream is error:"+e.toString());
 			}
 		}
+		System.out.println("the file write is sucessesfully");
+	}
+	
+	public static void updateScriptContext(){
+		System.out.println("start update the script content");
+		try {
+			writeFile2Hdfs(hiveParseConfig.getScriptContentHdfsWriteUrl(), ScriptContent.getScriptConent());
+			fileSystem.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		System.out.println("the script content update is sucessesfully");
 	}
 
 	private static boolean filterParseScriptName(String scriptName) {
-		if ((!scriptName.contains("_backup")) &&(!scriptName.endsWith("_create.sql")) && scriptName.endsWith(".sql")) {
-			if (scriptName.startsWith("_ic")
-					|| ((!scriptName.startsWith("edw_applications")) && scriptName.startsWith("edw_"))) {
-				return true;
-			} else {
-				return false;
-			}
-		} else if (scriptName.endsWith(".hsql")) {
-			return true;
-		} else {
+		
+		
+		if(scriptName.contains("_backup")){
 			return false;
 		}
+		
+		if(scriptName.endsWith("_create.sql")){
+			return false;
+		}
+		
+		if(scriptName.startsWith("edw_applications")){
+			return false;
+		}
+		
+		if (!scriptName.endsWith(".sql")||!scriptName.endsWith(".hsql")){
+			return false;
+		}
+		
+		if((scriptName.startsWith("ic_")||scriptName.startsWith("edw_"))){
+			return true;
+		}
+		
+		return false;
+		
+//		if ((!scriptName.contains("_backup")) &&(!scriptName.endsWith("_create.sql")) && scriptName.endsWith(".sql")) {
+//			if (scriptName.startsWith("_ic")
+//					|| ((!scriptName.startsWith("edw_applications")) && scriptName.startsWith("edw_"))) {
+//				return true;
+//			} else {
+//				return false;
+//			}
+//		} else if (scriptName.endsWith(".hsql")) {
+//			return true;
+//		} else {
+//			return false;
+//		}
 	}
 	
 
