@@ -139,7 +139,7 @@ public class HdfsFileUtils {
 		try {
 			List<Path> allScriptFile = HdfsFileUtils.listFile(scriptPath);
 			setScriptContextInfo(allScriptFile);
-			List<Path> filterScriptFile = allScriptFile.stream().filter(path->filterParseScriptName(path.getName())).collect(Collectors.toList());
+			List<Path> filterScriptFile = allScriptFile.stream().filter(path->filterParseScriptName(path.getName().trim().toLowerCase())).collect(Collectors.toList());
 			int count = filterScriptFile.size();
 			CountDownLatch cdl = new CountDownLatch(count);
 			for (Path path : filterScriptFile) {
@@ -210,27 +210,40 @@ public class HdfsFileUtils {
 	private static boolean filterParseScriptName(String scriptName) {
 		
 		
-		if(scriptName.contains("_backup")){
+//		if(scriptName.contains("_backup")){
+//			return false;
+//		}
+//		
+//		if(scriptName.endsWith("_create.sql")){
+//			return false;
+//		}
+//		
+//		if(scriptName.startsWith("edw_applications")){
+//			return false;
+//		}
+//		
+//		if (!scriptName.endsWith(".sql")&&!scriptName.endsWith(".hsql")){
+//			return false;
+//		}
+//				
+//		if((scriptName.startsWith("ic_")||scriptName.startsWith("edw_"))){
+//			return true;
+//		}
+		
+		if (scriptName.endsWith(".sql")||scriptName.endsWith(".hsql")){
+			if((scriptName.startsWith("ic_")||scriptName.startsWith("edw_"))){
+				return true;
+			}else{
+				return false;
+			}
+		}else{
 			return false;
 		}
+				
 		
-		if(scriptName.endsWith("_create.sql")){
-			return false;
-		}
 		
-		if(scriptName.startsWith("edw_applications")){
-			return false;
-		}
 		
-		if (!scriptName.endsWith(".sql")||!scriptName.endsWith(".hsql")){
-			return false;
-		}
 		
-		if((scriptName.startsWith("ic_")||scriptName.startsWith("edw_"))){
-			return true;
-		}
-		
-		return false;
 		
 //		if ((!scriptName.contains("_backup")) &&(!scriptName.endsWith("_create.sql")) && scriptName.endsWith(".sql")) {
 //			if (scriptName.startsWith("_ic")

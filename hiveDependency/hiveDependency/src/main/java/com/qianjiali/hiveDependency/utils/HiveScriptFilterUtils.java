@@ -27,7 +27,7 @@ public class HiveScriptFilterUtils {
 				Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 		Matcher m = pinsert.matcher(scriptStr.toLowerCase().trim());
 		if (!m.find()) {
-			if(!scriptStr.toLowerCase().contains("create")){
+			if(!scriptStr.toLowerCase().startsWith("create")){
 				if (scriptStr.trim().charAt(scriptStr.length() - 1) == ';') {// 避免最后一条执行语句的最后出现分号
 					scriptStr = scriptStr.substring(0, scriptStr.length() - 1).trim();
 				}
@@ -46,7 +46,7 @@ public class HiveScriptFilterUtils {
 	}
 
 	public static List<String> filterScriptLine(BufferedReader reader) throws Exception {
-		String analysisScript = firstFilterScript(reader);
+		String analysisScript = firstFilterScript(reader).trim();
 		analysisScript = analysisScript.substring(analysisScript.toLowerCase().indexOf("insert"));
 		if (analysisScript.contains("$")) {
 			analysisScript = sql$ReplaceTo0(analysisScript);
