@@ -1,10 +1,14 @@
 package com.qianjiali.hiveDependency.utils;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URI;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.client.HdfsUtils;
 
 public class InitHdfsConfig {
@@ -30,4 +34,11 @@ public class InitHdfsConfig {
 		return conf;
 	}
 
+	public static FSDataInputStream getJarConfiguration(String hdfsConfigUrl) throws IOException {
+		System.out.println("初始化hdfs配置资源..........");
+		Configuration conf = new Configuration();
+		FileSystem fs = FileSystem.get(URI.create(hdfsConfigUrl),conf);
+		FSDataInputStream hdfsInStream = fs.open(new Path(hdfsConfigUrl));
+		return hdfsInStream;
+	}
 }

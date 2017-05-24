@@ -8,11 +8,18 @@ import com.qianjiali.hiveDependency.utils.HivePartitionUtils;
 import com.qianjiali.hiveDependency.utils.PropertiesUtil;
 
 public class HiveParseService {
+	
+	//public HiveParseService() {
+		
+	//}
+	public HiveParseService(String[] args) {
+		HdfsFileUtils.loadHdfsFileConf(args);
+	}
 
 	public boolean startParseScript(String[] args) throws Exception{
 		System.out.println("开始执行解析...............");
 		try {
-			HiveConfig conf = PropertiesUtil.initProperties();
+			HiveConfig conf = PropertiesUtil.initProperties(args.length>0?args[args.length-1]:System.getProperty("user.dir"));
 			if(conf==null){
 				System.out.println("conf is null...............");
 				return false;
@@ -61,7 +68,7 @@ public class HiveParseService {
 
 	public void prodEnv(String[] args) throws Exception{
 		try {
-			if (args.length == 2) {// 自定义分区
+			if (args.length >2) {// 自定义分区
 				PropertiesUtil.setHiveParsePartition(args[1]);
 			}
 			System.out.println("The incoming address is " + args[0]);

@@ -8,10 +8,15 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.log4j.PropertyConfigurator;
 import org.codehaus.groovy.transform.tailrec.ReturnStatementToIterationConverter;
 
 import com.qianjiali.hiveDependency.entity.HiveConfig;
+import com.qianjiali.hiveDependency.utils.InitHdfsConfig;
 
 public class PropertiesUtil {
 
@@ -20,16 +25,19 @@ public class PropertiesUtil {
 
 	private static HiveConfig conf = HiveConfig.getInstance();
 
-	public static HiveConfig initProperties() {
+	public static HiveConfig initProperties(String rootPath) throws IOException {
 		System.out.println("开始加载配置资源....................");
-		String rootPath = System.getProperty("user.dir");
+		//String rootPath = System.getProperty("user.dir");
 		System.out.println("资源根路径是======================>>>>>" + rootPath);
-		String resourcePath = rootPath + "/config/config.properties";
-		InputStream is = null;
+		Path resourcePath = new Path(rootPath);
+		FSDataInputStream inputStream = null;
+		inputStream = HdfsFileUtils.fileSystem.open(resourcePath);				
+		//FSDataInputStream is = null;
+		
 		try {
-			File file = new File(resourcePath);
-			is = new FileInputStream(file);
-			pros.load(is);
+			//File file = new File(resourcePath);
+			//is = new FileInputStream(inputSteam);	
+			pros.load(inputStream);
 			conf.setHdfsConfig(pros.getProperty("hdfs_config_url"));
 			conf.setHdfsDest(pros.getProperty("hdfs_script_parse_relation_map_url"));
 			conf.setPatternInsert(pros.getProperty("pattern_insert"));
@@ -52,13 +60,6 @@ public class PropertiesUtil {
 			logger.error("资源文件找不到");
 		}
 		return null;
-	}
-
-	public static String getPropertiesValue(String propertiesKey) {
-		if (pros.isEmpty()) {
-			initProperties();
-		}
-		return pros.getProperty(propertiesKey);
 	}
 
 	public static void setHiveParsePartition(String partitionStr) {

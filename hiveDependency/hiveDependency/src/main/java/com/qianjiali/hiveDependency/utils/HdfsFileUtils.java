@@ -39,14 +39,15 @@ public class HdfsFileUtils {
 
 	private static ExecutorService taskPool = Executors.newFixedThreadPool(5);
 
-	static {
+	public static void loadHdfsFileConf(String[] args){		
 		try {
-			fileSystem = InitHdfsConfig.loadHdfsFileConf(hiveParseConfig.getHdfsConfig());
+			fileSystem = InitHdfsConfig.loadHdfsFileConf(args[2]);
 			System.out.println("hdfs资源初始化配置完成..........");
 		} catch (Exception e) {
 			logger.error("Initialize hdfs environment failed" + e);
 			e.printStackTrace();
 		}
+	
 	}
 
 	/**
@@ -66,7 +67,7 @@ public class HdfsFileUtils {
 			paths.add(path);
 			return paths;
 		} else {
-			RemoteIterator<LocatedFileStatus> subFiles = fileSystem.listFiles(path, true);
+			RemoteIterator<LocatedFileStatus> subFiles = fileSystem .listFiles(path, true);
 			while (subFiles.hasNext()) {
 				Path childPath = subFiles.next().getPath();
 				if (fileSystem.isFile(childPath)&&(childPath.getName().endsWith(".sql")||childPath.getName().endsWith(".hsql"))) {
